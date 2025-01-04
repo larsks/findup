@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -16,6 +15,7 @@ type (
 		startDirectory string
 		stopDirectory  string
 		help           bool
+		quiet          bool
 	}
 )
 
@@ -26,6 +26,7 @@ func init() {
 	flag.StringVarP(&options.stopDirectory, "stop-directory", "s", "", "Stop searching at this directory")
 	flag.StringVarP(&options.startDirectory, "start-directory", "d", ".", "Start searching at this directory (default '.')")
 	flag.BoolVarP(&options.help, "help", "h", false, "Print this help message")
+	flag.BoolVarP(&options.quiet, "quiet", "q", false, "Do not print error messages")
 }
 
 func Usage(out io.Writer) {
@@ -38,6 +39,15 @@ func ErrUsage() {
 	os.Exit(2)
 }
 
+func errorAndExit(msg string, params ...any) {
+	if !options.quiet {
+    fmt.Fprintf(os.Stderr, "ERROR: ")
+		fmt.Fprintf(os.Stderr, msg, params...)
+	}
+
+	os.Exit(1)
+}
+
 func main() {
 	flag.Usage = ErrUsage
 	flag.Parse()
@@ -48,7 +58,8 @@ func main() {
 	}
 
 	if flag.NArg() != 1 {
-		log.Fatalf("Missing target file name")
+		errorAndExit("Missing target file name")
+		os.Exit(2)
 	}
 
 	targetFile := flag.Arg(0)
@@ -56,7 +67,7 @@ func main() {
 	// Start the search from the specified directory
 	foundFile, err := searchFile(options.startDirectory, targetFile, options.flagFile, options.stopDirectory)
 	if err != nil {
-		log.Fatalf("Error: %v\n", err)
+		errorAndExit("%v\n", err)
 	}
 
 	fmt.Printf("%s\n", foundFile)
